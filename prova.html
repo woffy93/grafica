@@ -1,7 +1,6 @@
 <html>
-//com
 	<head>
-		<title>Load OBJ File</title>
+		<title>Game</title>
 		<style>
 		body {
 			font-family: Monospace;
@@ -20,63 +19,52 @@
 		<script src="lib/OBJLoader.js"></script>
 		<script src="lib/MTLLoader.js"></script>
 		<script src="lib/OrbitControls.js"></script>
-		<script src="lib/DAT.GUI.js"></script>
+		<script src="http://dat-gui.googlecode.com/git/build/dat.gui.min.js"></script>
 	</head>
 	<body>
 		
 		<script>
 			var scene = new THREE.Scene();
-			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-
 
 			var renderer = new THREE.WebGLRenderer();
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			renderer.setClearColor( 0xf0f0f0 );
 			document.body.appendChild( renderer.domElement );
 			
-			var inspectCamera ={
-				active: true,
-				a:  function activateInspectionCamera() {
-					if (this.active==true){
-					controls = new THREE.OrbitControls( camera, renderer.domElement );
-					controls.enableDamping = true;
-					controls.dampingFactor = 0.25;
-					controls.enableZoom = true;
-				} 
-			}
+			var camera1 = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+			camera1.position.x = 2*(Math.PI)
+			camera1.position.z = 10;
+			controls = new THREE.OrbitControls( camera1, renderer.domElement);
+			controls.enableDamping = true;
+			controls.dampingFactor = 0.25;
+			controls.enableZoom = true;
+
+			var camera2 = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			camera2.position.x = 3;
+			camera2.position.z = 10;
+
+			var currentCamera = {
+				cam : "cam1"
 			}
 
-			/*function activateInspectionCamera(){ 
-				if (inspectCamera.active==true){
-					controls = new THREE.OrbitControls( camera, renderer.domElement );
-					controls.enableDamping = true;
-					controls.dampingFactor = 0.25;
-					controls.enableZoom = true;
+			function cameraSelector() {
+				if (currentCamera.cam=="cam1"){
+					return camera1;
 				}
-			}*/
+				if (currentCamera.cam=="cam2"){
+					return camera2;
+				}
+			}
+
+
+
 			
 			window.onload = function() {
-			var gui = new DAT.GUI();
-  			gui.add(inspectCamera, 'active');
-  			inspectCamera.a();
-  		}
+				var gui = new dat.GUI();
+				gui.add(currentCamera, 'cam', { cam1: "cam1", cam2: "cam2"} );
+  			}
 
-
-			// instantiate a loader
-			/*var loader = new THREE.OBJLoader();
-
-			// load a resource
-			loader.load(
-				// resource URL
-				'models/starwars-tie-fighter.obj',
-				// Function when resource is loaded
-				function ( object ) {
-					//object.material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
-					scene.add( object );
-				}
-			);*/
-
-			//-------------------------------
 			var mtlLoader = new THREE.MTLLoader();
 				mtlLoader.load( 'models/starwars-tie-fighter.mtl', function( materials ) {
 
@@ -92,22 +80,19 @@
 				});
 				var ambient = new THREE.AmbientLight( 0x444444 );
 				scene.add( ambient );
-				//--------------------------------------
-			
+
 			stats = new Stats();
 			stats.domElement.style.position = 'absolute';
 			stats.domElement.style.top = '0px';
 			document.body.appendChild( stats.domElement );
 
-			camera.position.x = 2*(Math.PI)
-			camera.position.z = 10;
 			
 			function render() {
 				requestAnimationFrame(render);
 				
 				stats.update();
 				
-				renderer.render(scene, camera);
+				renderer.render(scene, cameraSelector());
 			}
 			
 			render();
