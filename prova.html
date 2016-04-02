@@ -78,8 +78,81 @@
 					} );
 
 				});
-				var ambient = new THREE.AmbientLight( 0x444444 );
-				scene.add( ambient );
+
+			var Asteroid = {
+				d_inc : 20,	//% max increase
+				d_dec : 20,	//% max decrease
+				radius : 1,
+				detail : 2,
+				x : 0,
+				y : 0,
+				z : 0,
+				active : false,
+				visible : true,
+				n_steps :500,
+				step : 0,
+				material : new THREE.MeshLambertMaterial({
+														color : 0x757778,
+														emissive :0x222222,
+														wireframe:false,
+														wireframeLinewidth:6
+														}),
+				spline : new THREE.SplineCurve3(),
+				asteroid_mesh : new THREE.Mesh(),
+				direction : function(point){
+					this.spline = new THREE.SplineCurve3(point);
+				},
+				createAsteroid : function(){
+					var asteroid_geo = this.AsteroidGeometry(this.radius,this.detail, this.d_inc,this.d_dec);
+				    this.asteroid_mesh = new THREE.Mesh(asteroid_geo, this.material);
+					this.asteroid_mesh.position.set(this.x,this.y,this.z);
+					this.asteroid_mesh.visible=this.visible;
+					return this.asteroid_mesh;
+				},
+				AsteroidGeometry : function (radius , detail, inc , dec){
+					var octahedron_geo = new THREE.OctahedronGeometry(radius,detail);
+					for( i=0;i<octahedron_geo.vertices.length;i++){
+						var v_a = octahedron_geo.vertices[i].toArray();
+						var ran_value=Math.random()*((1+inc/100)-(1-dec/100))+(1-dec/100);	
+						octahedron_geo.vertices[i]=new THREE.Vector3(v_a[0]*ran_value,
+																	 v_a[1]*ran_value,
+																	 v_a[2]*ran_value);
+					}
+					return octahedron_geo;
+				},
+				update : function (){
+					if(this.step>this.n_steps)
+						this.step=0;
+					var camPos = this.spline.getPoint(this.step++ / this.n_steps);
+					this.x = camPos .x;
+					this.y = camPos .y;
+					this.z = camPos .z;
+					this.asteroid_mesh.position.set(this.x,this.y,this.z);
+				}
+			}
+			
+			//test-asteroid--------------------
+			// var ast =Object.create(Asteroid);
+			// ast.x=-20;
+			// var point=[
+			// 	new THREE.Vector3(-20,0,0),
+			// 	new THREE.Vector3(20,0,0)
+			// ];
+			// ast.direction(point);
+			// ast.radius=5;
+
+			// scene.add(ast.createAsteroid());
+			//----------------------------------
+
+
+
+
+			var ambient = new THREE.AmbientLight( 0x444444 );
+			scene.add( ambient );
+
+			var direct = new THREE.DirectionalLight( 0xffffff ,0.5);
+			direct.position.set(0,0,5);
+			scene.add( direct );
 
 			stats = new Stats();
 			stats.domElement.style.position = 'absolute';
