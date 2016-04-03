@@ -25,7 +25,7 @@
 		
 		<script>
 			var camera1, camera2, scene, renderer;
-			var player1, asteroid;
+			var player1, asteroid, laser;
 
 			var currentCamera = {
 					cam : "cam1"
@@ -66,6 +66,13 @@
 					} );
 
 				});
+
+				var geometry = new THREE.CylinderGeometry( 0.03, 0.03, 1, 32 ); var material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+				laser = new THREE.Mesh( geometry, material ); 
+				laser.position.set(2,2,2);
+				laser.rotation.x = (Math.PI)/2;
+				scene.add( laser );
+
 
 				Asteroid = {	//load asteroid
 					d_inc : 20,	//% max increase
@@ -211,7 +218,15 @@
 						camera2.position.x = cameraOffset.x;
 						camera2.position.y = cameraOffset.y;
 						camera2.position.z = cameraOffset.z;
+						camera2.rotation.y = 90 * Math.PI / 180;
 						camera2.lookAt(player1.position);
+
+				var relativeLaserOffset = new THREE.Vector3 (0.35,-0.95, 8);
+				var laserOffset = relativeLaserOffset.applyMatrix4( player1.matrixWorld );
+				laser.position.x = laserOffset.x;
+				laser.position.y = laserOffset.y;
+				laser.position.z = laserOffset.z;
+				
 					}
 
 					renderer.render(scene, cameraSelector());
