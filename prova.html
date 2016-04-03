@@ -72,28 +72,38 @@
 					d_dec : 20,	//% max decrease
 					radius : 1,
 					detail : 2,
-					x : 0,
-					y : 0,
-					z : 0,
-					active : false,
+					position : {
+						x : 0,
+						y : 0,
+						z : 0
+					},
+					roll : {
+						active : true,
+						x : 0,	// rad/30
+						y : 0,
+						z : 0,
+						max : 10,
+						min : -10,
+					},			
+					move_active : true,
 					visible : true,
 					n_steps :500,
 					step : 0,
 					material : new THREE.MeshLambertMaterial({
 															color : 0x757778,
-															emissive :0x222222,
-															wireframe:false,
-															wireframeLinewidth:6
+															emissive :0x222222
 															}),
-					spline : new THREE.SplineCurve3(),
+					spline : new THREE.CatmullRomCurve3(),
 					asteroid_mesh : new THREE.Mesh(),
 					direction : function(point){
-						this.spline = new THREE.SplineCurve3(point);
+						this.spline = new THREE.CatmullRomCurve3(point);
 					},
 					createAsteroid : function(){
 						var asteroid_geo = this.AsteroidGeometry(this.radius,this.detail, this.d_inc,this.d_dec);
 					    this.asteroid_mesh = new THREE.Mesh(asteroid_geo, this.material);
-						this.asteroid_mesh.position.set(this.x,this.y,this.z);
+						this.asteroid_mesh.position.set(this.position.x,
+														this.position.y,
+														this.position.z);
 						this.asteroid_mesh.visible=this.visible;
 						return this.asteroid_mesh;
 					},
@@ -109,28 +119,43 @@
 						return octahedron_geo;
 					},
 					update : function (){
-						if(this.step>this.n_steps)
+						if(this.move_active==true){
+							if(this.step>this.n_steps)
 							this.step=0;
-						var camPos = this.spline.getPoint(this.step++ / this.n_steps);
-						this.x = camPos .x;
-						this.y = camPos .y;
-						this.z = camPos .z;
-						this.asteroid_mesh.position.set(this.x,this.y,this.z);
+							var camPos = this.spline.getPoint(this.step++ / this.n_steps);
+							this.position.x = camPos .x;
+							this.position.y = camPos .y;
+							this.position.z = camPos .z;
+						}
+						if(this.roll.active){
+							this.asteroid_mesh.rotation.x+= (this.roll.x/60);
+							this.asteroid_mesh.rotation.y+= (this.roll.y/60);
+							this.asteroid_mesh.rotation.z+= (this.roll.z/60);
+						}
+						this.asteroid_mesh.position.set(this.position.x,
+														this.position.y,
+														this.position.z);
+						this.asteroid_mesh.visible=this.visible;
 					}
 				}
 
 				
 				//============ Asteroid Test================
-					var ast =Object.create(Asteroid);
-					 ast.x=-20;
+					 asteroid =Object.create(Asteroid);
+					 asteroid.position.x=-20;
+					 asteroid.move_active=false;
+					 asteroid.roll.active=false;
+					 asteroid.roll.x=1;
+					 asteroid.roll.y=1;
 					var point=[
 						new THREE.Vector3(-20,0,0),
 						new THREE.Vector3(20,0,0)
 					 ];
-					 ast.direction(point);
-					 ast.radius=5;
 
-					 scene.add(ast.createAsteroid());
+					 asteroid.direction(point);
+					 asteroid.radius=5;
+
+					 scene.add(asteroid.createAsteroid());
 				//==========================================
 			 	
 
@@ -165,6 +190,8 @@
 				window.onload = function() {
 					var gui = new dat.GUI();
 					gui.add(currentCamera, 'cam', { inspect: "cam1", player: "cam2"} );
+					gui.add(asteroid, 'move_active');
+					gui.add(asteroid.roll, 'active');
 	  			}
 
 				
@@ -172,6 +199,9 @@
 					requestAnimationFrame(render);
 					
 					stats.update();
+					if(asteroid != undefined){
+						asteroid.update();
+					}
 
 					if (player1 != undefined) {
 						camera2.lookAt(player1.position);
