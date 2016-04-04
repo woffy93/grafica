@@ -24,7 +24,7 @@
 	<body>
 		
 		<script>
-			var camera1, camera2, scene, renderer;
+			var camera1, camera2, scene, renderer,clock;
 			var player1, asteroid, laser;
 
 			var currentCamera = {
@@ -35,6 +35,7 @@
 			render();
 
 			function init() {
+				clock = new THREE.Clock();
 				renderer = new THREE.WebGLRenderer();
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				document.body.appendChild(renderer.domElement);
@@ -221,12 +222,32 @@
 						camera2.rotation.y = 90 * Math.PI / 180;
 						camera2.lookAt(player1.position);
 
-				var relativeLaserOffset = new THREE.Vector3 (0.35,-0.95, 8);
-				var laserOffset = relativeLaserOffset.applyMatrix4( player1.matrixWorld );
-				laser.position.x = laserOffset.x;
-				laser.position.y = laserOffset.y;
-				laser.position.z = laserOffset.z;
-				
+						var relativeLaserOffset = new THREE.Vector3 (0.35,-0.95, 8);
+						var laserOffset = relativeLaserOffset.applyMatrix4( player1.matrixWorld );
+						laser.position.x = laserOffset.x;
+						laser.position.y = laserOffset.y;
+						laser.position.z = laserOffset.z;
+						
+						var delta = clock.getDelta(); // seconds.
+						var moveDistance = 0.02* delta; // 200 pixels per second
+
+						window.addEventListener('keydown', function(event) {
+  							switch (event.keyCode) {
+  								case 37: // Left
+  								player1.translateX(moveDistance);
+  								break;
+  								case 38: // Up
+  								player1.translateX(moveDistance);
+  								break;
+  								case 39: // Right
+  								 player1.translateX(-moveDistance);
+  								 break;
+  								 case 40: // Down
+  								 player1.translateZ(-moveDistance);
+  								 break;
+  							}
+  						})
+						
 					}
 
 					renderer.render(scene, cameraSelector());
