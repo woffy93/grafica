@@ -109,7 +109,7 @@
 					},			
 					move_active : true,
 					visible : true,
-					n_steps :500,
+					n_steps :400,
 					step : 0,
 					material : new THREE.MeshLambertMaterial({
 															color : 0x757778,
@@ -119,6 +119,7 @@
 					asteroid_mesh : new THREE.Mesh(),
 					direction : function(point){
 						this.spline = new THREE.CatmullRomCurve3(point);
+
 					},
 					createAsteroid : function(){
 						var asteroid_geo = this.AsteroidGeometry(this.radius,this.detail, this.d_inc,this.d_dec);
@@ -180,13 +181,62 @@
 						new THREE.Vector3(10,-5,0),
 						new THREE.Vector3(20,5,0)
 					 ];
+					 
+					  asteroid.direction(point);
+					  asteroid.radius=5;
 
-					 asteroid.direction(point);
-					 asteroid.radius=5;
-
-					 scene.add(asteroid.createAsteroid());
+					  scene.add(asteroid.createAsteroid());
 				//==========================================
-			 	
+			 	//=========LASER============================
+			 	Laser = {
+			 		position : {
+			 			x : 0,
+			 			y : 0,
+			 			z : 0
+			 		},
+			 		move_active : true,
+			 		material : new THREE.MeshPhongMaterial({
+														color : 0xff0000,
+														emissive :0xca0000,
+														shininess :100
+													}),
+			 		laser_mesh : new THREE.Mesh(),
+			 		spline : new THREE.CatmullRomCurve3(),
+			 		rays : [new THREE.Vector3(0,0,1)],
+			 		n_step : 200,
+			 		step : 0,
+			 		createLaser : function(player){
+			 			var laser_geo = new THREE.CylinderGeometry( 0.03, 0.03, 1, 16 );
+						laser_geo.rotateX (Math.PI)/2;
+						this.laser_mesh=new THREE.Mesh(laser_geo,this.material);
+						var relativeLaserOffset = new THREE.Vector3 (0.35,-0.95, 8);
+						var laserOffset = relativeLaserOffset.applyMatrix4( player.matrixWorld );
+						this.laser_mesh.position.x = laserOffset.x;
+						this.laser_mesh.position.y = laserOffset.y;
+						this.laser_mesh.position.z = laserOffset.z;
+
+						//set fire tragectory
+						this.spline = new THREE.CatmullRomCurve3([
+																	this.laser_mesh.position,
+																	new THREE.Vector3(0,0,40)
+																]);
+
+						return this.laser_mesh;
+			 		},
+			 		update : function(){
+			 			if(this.move_active==true){
+							if(this.step>this.n_steps)
+							this.step=0;
+							var laserPos = this.spline.getPoint(this.step++ / this.n_steps);
+							this.laser_mesh.position.x = laserPos.x;
+							this.laser_mesh.position.y = laserPos.y;
+							this.laser_mesh.position.z = laserPos.z;
+						}
+			 		}
+
+
+			 	}
+			 	//==========================================
 
 			 	var ambientLight = new THREE.AmbientLight( 0x444444 );
 				scene.add( ambientLight );
@@ -320,8 +370,8 @@
 					stats.update();
 					if(asteroid != undefined){
 						asteroid.update();
+						
 					}
-
 					if (player1 != undefined) {
 						player1.rotation.x=rotationVector.x;
 						player1.rotation.y=rotationVector.y;
@@ -335,11 +385,7 @@
 						camera2.rotation.y = 90 * Math.PI / 180;
 						camera2.lookAt(player1.position);
 
-						var relativeLaserOffset = new THREE.Vector3 (0.35,-0.95, 8);
-						var laserOffset = relativeLaserOffset.applyMatrix4( player1.matrixWorld );
-						laser.position.x = laserOffset.x;
-						laser.position.y = laserOffset.y;
-						laser.position.z = laserOffset.z;
+						
 						
 						var delta = clock.getDelta(); // seconds.
 						//var moveDistance = 0.02* delta; // 200 pixels per second
