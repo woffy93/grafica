@@ -26,6 +26,7 @@
 		<script>
 			var camera1, camera2, scene, renderer,clock;
 			var player1, asteroid, laser;
+			var mx=0;var mz=0;
 
 			var currentCamera = {
 					cam : "cam1"
@@ -202,6 +203,83 @@
 					gui.add(asteroid.roll, 'active');
 	  			}
 
+	  			window.addEventListener('keydown', function(event) {
+  							switch (event.keyCode) {
+  								case 65: // Left
+  								mx+=0.1;
+  								break;
+  								case 87: // Up
+  								mz+=0.1;
+  								break;
+  								case 68: // Right
+  								mx-=0.1;
+  								 break;
+  								 case 83: // Down
+  								 mz-=0.1;
+  								 break;
+  							}
+  						})
+
+//=========================== MOUSE TEST =================================================================================================================================
+
+				var rotationVector = new THREE.Vector3( 0, 0, 0 );
+				var moveState = { up: 0, down: 0, left: 0, right: 0, forward: 0, back: 0, pitchUp: 0, pitchDown: 0, yawLeft: 0, yawRight: 0, rollLeft: 0, rollRight: 0 };
+
+	  			function updateRotationVector() {
+				rotationVector.x = ( - moveState.pitchDown + moveState.pitchUp );
+				rotationVector.y = ( - moveState.yawRight  + moveState.yawLeft );
+				rotationVector.z = ( - moveState.rollRight + moveState.rollLeft );
+				//console.log(rotationVector.x);
+			
+				}
+				mouseup = function( event ) {
+						event.preventDefault();
+						event.stopPropagation();
+
+						if (window.dragToLook ) {
+							window.mouseStatus --;
+
+							moveState.yawLeft = moveState.pitchDown = 0;
+
+						} else {
+
+							switch ( event.button ) {
+
+								case 0: moveState.forward = 0; break;
+								case 2: moveState.back = 0; break;
+
+							}
+
+							updateMovementVector();
+
+						}
+
+						updateRotationVector();
+
+					};
+					
+				window.onmousemove = function( event ) {
+					var container = this.getContainerDimensions();
+					var halfWidth  = container.size[ 0 ] / 2;
+					var halfHeight = container.size[ 1 ] / 2;
+
+					moveState.yawLeft   = - ( ( event.pageX) - halfWidth  ) / halfWidth;
+					moveState.pitchDown =   ( ( event.pageY) - halfHeight ) / halfHeight;
+
+					updateRotationVector();
+
+				}
+
+				window.getContainerDimensions = function() {
+					return {
+						size	: [ window.innerWidth, window.innerHeight ],
+						offset	: [ 0, 0 ]
+					};
+				};
+
+
+//====================================================================================================================================================================
+
 				
 				function render() {
 					requestAnimationFrame(render);
@@ -212,7 +290,9 @@
 					}
 
 					if (player1 != undefined) {
-						camera2.lookAt(player1.position);
+						player1.rotation.x=rotationVector.x;
+						player1.rotation.y=rotationVector.y;
+						player1.rotation.z=rotationVector.z;
 						var relativeCameraOffset = new THREE.Vector3 (0,5,-10);
 						var cameraOffset = relativeCameraOffset.applyMatrix4( player1.matrixWorld );
 
@@ -229,24 +309,11 @@
 						laser.position.z = laserOffset.z;
 						
 						var delta = clock.getDelta(); // seconds.
-						var moveDistance = 0.02* delta; // 200 pixels per second
-
-						window.addEventListener('keydown', function(event) {
-  							switch (event.keyCode) {
-  								case 37: // Left
-  								player1.translateX(moveDistance);
-  								break;
-  								case 38: // Up
-  								player1.translateX(moveDistance);
-  								break;
-  								case 39: // Right
-  								 player1.translateX(-moveDistance);
-  								 break;
-  								 case 40: // Down
-  								 player1.translateZ(-moveDistance);
-  								 break;
-  							}
-  						})
+						//var moveDistance = 0.02* delta; // 200 pixels per second
+						player1.translateZ(mz);
+						player1.translateX(mx);
+						mx/=1.05;
+						mz/=1.05;
 						
 					}
 
