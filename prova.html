@@ -27,6 +27,19 @@
 			var camera1, camera2, scene, renderer,clock;
 			var player1, asteroid, laser;
 			var mx=0;var mz=0;
+			var rays;
+			rays = [
+				    new THREE.Vector3(0, 0, 1),
+				    new THREE.Vector3(1, 0, 1),
+				    new THREE.Vector3(1, 0, 0),
+				    new THREE.Vector3(1, 0, -1),
+				    new THREE.Vector3(0, 0, -1),
+				    new THREE.Vector3(-1, 0, -1),
+				    new THREE.Vector3(-1, 0, 0),
+				    new THREE.Vector3(-1, 0, 1),
+				    new THREE.Vector3(0, 1, 0),	//up
+				    new THREE.Vector3(0, -1, 0)	//down
+				    ];
 
 			var currentCamera = {
 					cam : "cam1"
@@ -156,9 +169,16 @@
 					 asteroid.roll.active=false;
 					 asteroid.roll.x=1;
 					 asteroid.roll.y=1;
-					var point=[
-						new THREE.Vector3(-20,0,0),
-						new THREE.Vector3(20,0,0)
+					// var point=[
+					// 	new THREE.Vector3(-20,0,0),
+					// 	new THREE.Vector3(20,0,0)
+					//  ];
+					 var point=[
+						new THREE.Vector3(-20,5,0),
+						new THREE.Vector3(-10,-5,0),
+						new THREE.Vector3(0,5,0),
+						new THREE.Vector3(10,-5,0),
+						new THREE.Vector3(20,5,0)
 					 ];
 
 					 asteroid.direction(point);
@@ -183,7 +203,20 @@
 
 			}
 
+				//============checkCollisions===============
+			 	function checkCollisions (playermesh,rayslist,meshlist){
+			 		var raycast = new THREE.Raycaster();
+			 		for (i = 0; i < rayslist.length; i++) {
+						raycast.set(playermesh.position,rayslist[i]);
+						var collisions = raycast.intersectObjects(meshlist,true);
 
+						if(collisions.length>0 && collisions[0].distance<=5)
+						{
+							scene.remove(player1);
+						}
+					}
+			 	}
+			 	//===========================================
 
 				function cameraSelector() {
 					if (currentCamera.cam=="cam1"){
@@ -314,7 +347,7 @@
 						player1.translateX(mx);
 						mx/=1.05;
 						mz/=1.05;
-						
+						checkCollisions(player1,rays,[asteroid.asteroid_mesh]);
 					}
 
 					renderer.render(scene, cameraSelector());
