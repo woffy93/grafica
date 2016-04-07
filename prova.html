@@ -28,6 +28,7 @@
 			var player1, asteroid, laser;
 			var mx=0;var mz=0;
 			var rays;
+			var euler = new THREE.Euler( 0, 0, 0, 'XYZ' );
 			rays = [
 				    new THREE.Vector3(0, 0, 1),
 				    new THREE.Vector3(1, 0, 1),
@@ -250,8 +251,8 @@
 				stats.domElement.style.top = '0px';
 				document.body.appendChild( stats.domElement );
 
-
 			}
+			//=====init-end===============================00
 
 				//============checkCollisions===============
 			 	function checkCollisions (playermesh,rayslist,meshlist){
@@ -302,6 +303,19 @@
   								 break;
   							}
   						})
+	  			//-----Resize-------------------------
+	  			window.addEventListener( 'resize', onWindowResize, true);
+	  			function onWindowResize() {
+
+					camera1.aspect = window.innerWidth / window.innerHeight;
+					camera1.updateProjectionMatrix();
+					camera2.aspect = window.innerWidth / window.innerHeight;
+					camera2.updateProjectionMatrix();
+
+					renderer.setSize( window.innerWidth, window.innerHeight );
+
+				}
+				//-----Resize-end----------------------------------
 
 //=========================== MOUSE TEST =================================================================================================================================
 
@@ -309,11 +323,9 @@
 				var moveState = { up: 0, down: 0, left: 0, right: 0, forward: 0, back: 0, pitchUp: 0, pitchDown: 0, yawLeft: 0, yawRight: 0, rollLeft: 0, rollRight: 0 };
 
 	  			function updateRotationVector() {
-				rotationVector.x = ( - moveState.pitchDown + moveState.pitchUp );
+				rotationVector.x = ( + moveState.pitchDown - moveState.pitchUp );
 				rotationVector.y = ( - moveState.yawRight  + moveState.yawLeft );
 				rotationVector.z = ( - moveState.rollRight + moveState.rollLeft );
-				//console.log(rotationVector.x);
-			
 				}
 				mouseup = function( event ) {
 						event.preventDefault();
@@ -361,6 +373,7 @@
 				};
 
 
+
 //====================================================================================================================================================================
 
 				
@@ -368,14 +381,18 @@
 					requestAnimationFrame(render);
 					
 					stats.update();
+
 					if(asteroid != undefined){
 						asteroid.update();
-						
 					}
+
 					if (player1 != undefined) {
-						player1.rotation.x=rotationVector.x;
-						player1.rotation.y=rotationVector.y;
-						player1.rotation.z=rotationVector.z;
+						player1.quaternion.setFromEuler(new THREE.Euler(
+																		rotationVector.x*(Math.PI/2),
+																		rotationVector.y*(Math.PI),
+																		rotationVector.z,
+																		'ZYX' ));
+						
 						var relativeCameraOffset = new THREE.Vector3 (0,5,-10);
 						var cameraOffset = relativeCameraOffset.applyMatrix4( player1.matrixWorld );
 
@@ -388,12 +405,11 @@
 						
 						
 						var delta = clock.getDelta(); // seconds.
-						//var moveDistance = 0.02* delta; // 200 pixels per second
 						player1.translateZ(mz);
 						player1.translateX(mx);
 						mx/=1.05;
 						mz/=1.05;
-						checkCollisions(player1,rays,[asteroid.asteroid_mesh]);
+						//checkCollisions(player1,rays,[asteroid.asteroid_mesh]);
 					}
 
 					renderer.render(scene, cameraSelector());
