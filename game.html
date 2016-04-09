@@ -49,9 +49,46 @@
 				    ];
 
 			var currentCamera = {
-					cam : "cam1"
-				}
+				cam : "cam1"
+			}
 
+			var Player ={
+				mesh : new THREE.Mesh(),
+				targets : new Array(),
+				move : new THREE.Vector3(0,0,0),
+				roll : new THREE.Vector3(0,0,0),
+				is_alive : true,
+				objLoad : false,
+				LoadObj : function (path){
+					var mtlLoader = new THREE.MTLLoader();
+					mtlLoader.load( 
+						path+'.mtl', 
+						function( materials ) {
+							materials.preload();
+							var objLoader = new THREE.OBJLoader();
+							objLoader.setMaterials( materials );
+							objLoader.load( 
+								path+'.obj', 
+								function ( mesh ) {	// onload
+									Player.mesh=mesh;
+									Player.settt(true);
+									scene.add(Player.mesh);
+								}
+							);
+						}
+					);
+				},
+				settt : function(b){
+					this.objLoad=b;
+				},
+				create : function (){
+					this.LoadObj("models/starwars-tie-fighter");
+					
+				},
+				update : function(){
+					console.log("up");
+				}
+			};
 			init();
 			render();
 
@@ -94,40 +131,7 @@
 				// });
 
 				//Player-test----------------------------------------------------------------------------------
-				var Player ={
-					mesh : new THREE.Mesh(),
-					targets : new Array(),
-					move : new THREE.Vector3(0,0,0),
-					roll : new THREE.Vector3(0,0,0),
-					is_alive : true,
-					mtlLoader : new THREE.MTLLoader().load( 
-						'models/starwars-tie-fighter.mtl', 
-						function( materials ) {
-							materials.preload();
-							var objLoader = new THREE.OBJLoader();
-							objLoader.setMaterials( materials );
-							objLoader.load( 
-								'models/starwars-tie-fighter.obj', 
-								function ( fighter_mesh ) {
-									this.mesh=fighter_mesh;
-									console.log("1");
-									console.log(this.mesh);
-									//scene.add(player1);
-								}
-							);
-						}
-					),
-					create : function (){
-						console.log("2");
-						console.log(this.mesh);
-						return this.mesh;
-					}
-				}
-				var p = Object.create(Player); 
-				p.mtlLoader;
-				player1=p.create();
-				scene.add(player1);
-
+				Player.create();
 				//Asteroid-Test-----------------------------------------------------------------------------------
 				asteroid = new Asteroid();
 				asteroid.position.x=-20;
@@ -194,7 +198,7 @@
 					var collisions = raycast.intersectObjects(meshlist,true);
 					if(collisions.length>0 && collisions[0].distance<=5)
 					{
-						scene.remove(collisions.object);
+						scene.remove(Player.mesh);
 					}
 				}
 		 	}
@@ -229,11 +233,11 @@
 						case 83: // Down
 							mz-=0.1;
 						break;
-						case 69:{ // Down
+						case 69: // Down
 							laser= new Laser();
- 					 		if(player1!=undefined)
- 					 			scene.add(laser.createLaser(player1));
-						}break;
+ 					 		if(Player.objLoad)
+ 					 			scene.add(laser.createLaser(Player.mesh));
+						break;
 
 					}
 				}
@@ -305,31 +309,32 @@
 				if(asteroid != undefined){
 					asteroid.update();
 				}
+				console.log(Player.objLoad);
+				if (Player.objLoad) {
 
-				if (player1 != undefined) {
-					player1.quaternion.setFromEuler(new THREE.Euler(
+					Player.mesh.quaternion.setFromEuler(new THREE.Euler(
 						rotationVector.x*(Math.PI/2),
 						rotationVector.y*(Math.PI),
 						rotationVector.z,
 						'ZYX' ));
 					
 					var relativeCameraOffset = new THREE.Vector3 (0,5,-10);
-					var cameraOffset = relativeCameraOffset.applyMatrix4( player1.matrixWorld );
+					var cameraOffset = relativeCameraOffset.applyMatrix4( Player.mesh.matrixWorld );
 
 					camera2.position.x = cameraOffset.x;
 					camera2.position.y = cameraOffset.y;
 					camera2.position.z = cameraOffset.z;
 					camera2.rotation.y = 90 * Math.PI / 180;
 					camera2.rotation.z = Math.PI;
-					camera2.lookAt(player1.position);
+					camera2.lookAt(Player.mesh.position);
 
 					var delta = clock.getDelta(); // seconds.
-					player1.translateZ(mz);
-					player1.translateX(mx);
+					Player.mesh.translateZ(mz);
+					Player.mesh.translateX(mx);
 					mx/=1.05;
 					mz/=1.05;
 
-					checkCollisions(player1,rays,[asteroid.asteroid_mesh]);
+					checkCollisions(Player.mesh,rays,[asteroid.asteroid_mesh]);
 				}
 				renderer.render(scene, cameraSelector());
 			}
