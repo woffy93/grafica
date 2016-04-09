@@ -26,13 +26,10 @@
 		<script>
 //==========VARIABLES================================================
 			var camera1, camera2, scene, renderer;
-			var player1, asteroid, laser;
-			var mx=0;var mz=0;
+			var asteroid;
 			var asteroids = new Array();
-			//var euler = new THREE.Euler( 0, 0, 0, 'XYZ' );
 
-			var rotationVector = new THREE.Vector3( 0, 0, 0 );
-				var moveState = { up: 0, down: 0, left: 0, right: 0, forward: 0, back: 0, pitchUp: 0, pitchDown: 0, yawLeft: 0, yawRight: 0, rollLeft: 0, rollRight: 0 };
+			var moveState = { up: 0, down: 0, left: 0, right: 0, forward: 0, back: 0, pitchUp: 0, pitchDown: 0, yawLeft: 0, yawRight: 0, rollLeft: 0, rollRight: 0 };
 
 			var currentCamera = {
 				cam : "cam1"
@@ -99,7 +96,7 @@
 						{
 							scene.remove(this.mesh);
 							this.is_alive=false;
-							consol.log("hit player");
+							console.log("hit player");
 						}
 					}
 				},
@@ -107,15 +104,22 @@
 				update : function(){
 					if(this.objLoad && this.is_alive){
 						this.mesh.quaternion.setFromEuler(new THREE.Euler(
-							rotationVector.x*(Math.PI/2),
-							rotationVector.y*(Math.PI),
-							rotationVector.z,
+							this.roll.x*(Math.PI/2),
+							this.roll.y*(Math.PI),
+							this.roll.z,
 							'ZYX' ));
-						this.mesh.translateZ(mz);
-						this.mesh.translateX(mx);
-						mx/=1.05;
-						mz/=1.05;
+						this.mesh.translateX(this.move.x);
+						this.mesh.translateZ(this.move.z);
+						
+						this.move.x/=1.05;
+						this.move.z/=1.05;
 						this.checkCollisions();
+
+						//LASER-loop-----------------------
+						for(var i=0;i<this.shots.length;i++){
+							this.shots[i].update();
+							this.shots[i].CheckLaserCollision(this.targets);
+						}
 					}
 				}
 			};
@@ -123,7 +127,7 @@
 			render();
 
 			
-//==========FUNCTIONS============================================================================================
+//==========FUNCTIONS============================================================================
 			function init() {
 				clock = new THREE.Clock();
 				renderer = new THREE.WebGLRenderer();
@@ -169,7 +173,7 @@
 				asteroid.direction(point);
 				asteroid.radius=5;
 				scene.add(asteroid.createAsteroid());
-
+				Player.targets.push(asteroid.asteroid_mesh);
 				// for (var i = 0; i <20; i++) {	
 				// 	asteroids.push(new Asteroid());
 				// 	asteroids[i].position.z=-8*i;
@@ -206,25 +210,12 @@
 
 			}//init-end
 
-			//============checkCollisions===============
-		 	// function checkCollisions (playermesh,rayslist,meshlist){
-		 	// 	var raycast = new THREE.Raycaster();
-		 	// 	for (var i = 0; i < rayslist.length; i++) {
-				// 	raycast.set(playermesh.position,rayslist[i]);
-				// 	var collisions = raycast.intersectObjects(meshlist,true);
-				// 	if(collisions.length>0 && collisions[0].distance<=5)
-				// 	{
-				// 		scene.remove(Player.mesh);
-				// 	}
-				// }
-		 	// }
-
 			//GUI-------------------------------------				
 			window.onload = function() {
 				var gui = new dat.GUI();
 				gui.add(currentCamera, 'cam', { inspect: "cam1", player: "cam2"} );
-				gui.add(asteroid, 'move_active');
-				gui.add(asteroid.roll, 'active');
+				//gui.add(asteroid, 'move_active');
+				//gui.add(asteroid.roll, 'active');
   			}
   			function cameraSelector() {
 				if (currentCamera.cam=="cam1"){
@@ -238,16 +229,16 @@
   				if(currentCamera.cam=="cam2"){
 					switch (event.keyCode) {
 						case 65: // Left
-							mx+=0.1;
+							Player.move.x+=0.1;
 						break;
 						case 87: // Up
-							mz+=0.1;
+							Player.move.z+=0.1;
 						break;
 						case 68: // Right
-							mx-=0.1;
+							Player.move.x-=0.1;
 						break;
 						case 83: // Down
-							mz-=0.1;
+							Player.move.z-=0.1;
 						break;
 						case 69: // Down
 							Player.fire();
@@ -268,9 +259,9 @@
 			//Mouse-Functions--------------------------------------------------------
   			function updateRotationVector() {
 	  			if(currentCamera.cam=="cam2"){
-					rotationVector.x = ( + moveState.pitchDown - moveState.pitchUp );
-					rotationVector.y = ( - moveState.yawRight  + moveState.yawLeft );
-					rotationVector.z = ( - moveState.rollRight + moveState.rollLeft );
+					Player.roll.x = ( + moveState.pitchDown - moveState.pitchUp );
+					Player.roll.y = ( - moveState.yawRight  + moveState.yawLeft );
+					Player.roll.z = ( - moveState.rollRight + moveState.rollLeft );
 				}	
 			}
 			mouseup = function( event ) {
@@ -321,136 +312,159 @@
 				camera2.rotation.y = 90 * Math.PI / 180;
 				camera2.rotation.z = Math.PI;
 				camera2.lookAt(Player.mesh.position);
-
+				
 				renderer.render(scene, cameraSelector());
 			}
 
 //===========OBJECT======================================================
 
 //====ASTEROID===========================================================
-function Asteroid () {	// constructor asteroid
-					this.d_inc = 20;	//% max increase
-					this.d_dec = 20;	//% max decrease
-					this.radius = 1;
-					this.detail = 2;
-					this.position = {
-						x : 0,
-						y : 0,
-						z : 0
-					};
-					this.roll = {
-						active : true,
-						x : 0,	// rad/30
-						y : 0,
-						z : 0,
-						max : 10,
-						min : -10
-					};			
-					this.move_active = true;
-					this.visible = true;
-					this.n_steps = 400;
-					this.step = 0;
-					this.material = new THREE.MeshLambertMaterial({
-															color : 0x757778,
-															emissive : 0x222222
-															});
-					this.spline = new THREE.CatmullRomCurve3();
-					this.asteroid_mesh = new THREE.Mesh();
-					this.direction = function(point){
-						this.spline = new THREE.CatmullRomCurve3(point);
+			function Asteroid () {	// constructor asteroid
+				this.d_inc = 20;	//% max increase
+				this.d_dec = 20;	//% max decrease
+				this.radius = 1;
+				this.detail = 2;
+				this.position = {
+					x : 0,
+					y : 0,
+					z : 0
+				};
+				this.roll = {
+					active : true,
+					x : 0,	// rad/30
+					y : 0,
+					z : 0,
+					max : 10,
+					min : -10
+				};			
+				this.move_active = true;
+				this.visible = true;
+				this.n_steps = 400;
+				this.step = 0;
+				this.material = new THREE.MeshLambertMaterial({
+														color : 0x757778,
+														emissive : 0x222222
+														});
+				this.spline = new THREE.CatmullRomCurve3();
+				this.asteroid_mesh = new THREE.Mesh();
+				this.direction = function(point){
+					this.spline = new THREE.CatmullRomCurve3(point);
 
-					};
-					this.createAsteroid = function(){
-						var asteroid_geo = this.AsteroidGeometry(this.radius,this.detail, this.d_inc,this.d_dec);
-					    this.asteroid_mesh = new THREE.Mesh(asteroid_geo, this.material);
-						this.asteroid_mesh.position.set(this.position.x,
-														this.position.y,
-														this.position.z);
-						this.asteroid_mesh.visible=this.visible;
-						return this.asteroid_mesh;
-					};
-					this.AsteroidGeometry = function (radius , detail, inc , dec){
-						var octahedron_geo = new THREE.OctahedronGeometry(radius,detail);
-						for(var i=0;i<octahedron_geo.vertices.length;i++){
-							var v_a = octahedron_geo.vertices[i].toArray();
-							var ran_value=Math.random()*((1+inc/100)-(1-dec/100))+(1-dec/100);	
-							octahedron_geo.vertices[i]=new THREE.Vector3(v_a[0]*ran_value,
-																		 v_a[1]*ran_value,
-																		 v_a[2]*ran_value);
-						}
-						return octahedron_geo;
-					};
-					this.update = function (){
-						if(this.move_active==true){
-							if(this.step>this.n_steps)
-							this.step=0;
-							var camPos = this.spline.getPoint(this.step++ / this.n_steps);
-							this.position.x = camPos .x;
-							this.position.y = camPos .y;
-							this.position.z = camPos .z;
-						}
-						if(this.roll.active){
-							this.asteroid_mesh.rotation.x+= (this.roll.x/60);
-							this.asteroid_mesh.rotation.y+= (this.roll.y/60);
-							this.asteroid_mesh.rotation.z+= (this.roll.z/60);
-						}
-						this.asteroid_mesh.position.set(this.position.x,
-														this.position.y,
-														this.position.z);
-						this.asteroid_mesh.visible=this.visible;
-					};
-				}
+				};
+				this.createAsteroid = function(){
+					var asteroid_geo = this.AsteroidGeometry(this.radius,this.detail, this.d_inc,this.d_dec);
+				    this.asteroid_mesh = new THREE.Mesh(asteroid_geo, this.material);
+					this.asteroid_mesh.position.set(this.position.x,
+													this.position.y,
+													this.position.z);
+					this.asteroid_mesh.visible=this.visible;
+					return this.asteroid_mesh;
+				};
+				this.AsteroidGeometry = function (radius , detail, inc , dec){
+					var octahedron_geo = new THREE.OctahedronGeometry(radius,detail);
+					for(var i=0;i<octahedron_geo.vertices.length;i++){
+						var v_a = octahedron_geo.vertices[i].toArray();
+						var ran_value=Math.random()*((1+inc/100)-(1-dec/100))+(1-dec/100);	
+						octahedron_geo.vertices[i]=new THREE.Vector3(v_a[0]*ran_value,
+																	 v_a[1]*ran_value,
+																	 v_a[2]*ran_value);
+					}
+					return octahedron_geo;
+				};
+				this.update = function (){
+					if(this.move_active==true){
+						if(this.step>this.n_steps)
+						this.step=0;
+						var camPos = this.spline.getPoint(this.step++ / this.n_steps);
+						this.position.x = camPos .x;
+						this.position.y = camPos .y;
+						this.position.z = camPos .z;
+					}
+					if(this.roll.active){
+						this.asteroid_mesh.rotation.x+= (this.roll.x/60);
+						this.asteroid_mesh.rotation.y+= (this.roll.y/60);
+						this.asteroid_mesh.rotation.z+= (this.roll.z/60);
+					}
+					this.asteroid_mesh.position.set(this.position.x,
+													this.position.y,
+													this.position.z);
+					this.asteroid_mesh.visible=this.visible;
+				};
+			}
 //=====END=ASTEROID======================================================
 
 //=========LASER=========================================================
-			 	function Laser() {
-			 		this.move_active = true;
-			 		this.geometry = new THREE.CylinderGeometry( 0.03, 0.03, 1, 32 );
-			 		this.material = new THREE.MeshPhongMaterial({
-														color : 0xff0000,
-														emissive :0xca0000,
-														shininess :100
-													});
-			 		this.laser_mesh = new THREE.Mesh(this.geometry, this.material);
-			 		//this.spline = new THREE.CatmullRomCurve3();
-			 		this.rays = [new THREE.Vector3(0,0,1)];
-			 		//this.n_step = 200;
-			 		//this.step = 0;
-			 		this.createLaser = function(player){
-			 			var relativeLaserOffset = new THREE.Vector3 (0.35,-0.95, 8);
-						var laserOffset = relativeLaserOffset.applyMatrix4( player.matrixWorld );
-						this.laser_mesh.position.x = laserOffset.x;
-						this.laser_mesh.position.y = laserOffset.y;
-						this.laser_mesh.position.z = laserOffset.z;
-						this.laser_mesh.rotation.x = (Math.PI)/2;
+		 	function Laser() {
+		 		this.move_active = true;
+		 		this.geometry = new THREE.CylinderGeometry( 0.03, 0.03, 1, 32 );
+		 		this.material = new THREE.MeshPhongMaterial({
+													color : 0xff0000,
+													emissive :0xca0000,
+													shininess :100
+												});
+		 		this.laser_mesh = new THREE.Mesh(this.geometry, this.material);
+		 		this.spline = new THREE.CatmullRomCurve3();
+		 		this.rays = [new THREE.Vector3(0,0,1)];
+		 		this.n_steps = 200;
+		 		this.step = 0;
+		 		this.createLaser = function(player){
+		 			var relativeLaserOffset = new THREE.Vector3 (0.35,-0.95, 8);
+					var laserOffset = relativeLaserOffset.applyMatrix4( player.matrixWorld );
+					this.laser_mesh.position.x = laserOffset.x;
+					this.laser_mesh.position.y = laserOffset.y;
+					this.laser_mesh.position.z = laserOffset.z;
 
-						//set fire tragectory
-						// this.spline = new THREE.CatmullRomCurve3([
-						// 											this.laser_mesh.position,
-						// 											new THREE.Vector3(0,0,40)
-						// 										]);
-						scene.add(this.laser_mesh);
-			 		};
-			 		this.update = function(){
-			 			if(this.move_active==true){
-							while (this.laser_mesh.position.z<2000*2)
-							this.laser_mesh.position.z+=0.5;
+					//set fire tragectory
+					var v=new THREE.Vector3(0,0,1);
+					
+					v.x+=this.laser_mesh.position.x;
+					v.y+=this.laser_mesh.position.y;
+					v.z+=this.laser_mesh.position.z;
+					console.log("----------");
+					console.log(v);
+						// Math.sin(Player.roll.y*(Math.PI)),
+						// 1,
+						// Math.sin(Player.roll.x*(Math.PI)/2));
+					v.applyEuler(new THREE.Euler(
+						Player.roll.x*(Math.PI/2),
+						Player.roll.y*(Math.PI),
+						Player.roll.z,
+						'ZYX' ));
+					console.log(v);
+					v.x*=2;
+					v.y*=2;
+					v.z*=2;
+					console.log(v);
+					this.spline = new THREE.CatmullRomCurve3([
+																this.laser_mesh.position,
+																v
+															]);
+					scene.add(this.laser_mesh);
+		 		};
+		 		this.update = function(){
+		 			if(this.move_active==true){
+		 				if(this.step>this.n_steps)this.move_active=false;
+						var pos= this.spline.getPoint(this.step++ / this.n_steps);
+						this.laser_mesh.position.x=pos.x;
+						this.laser_mesh.position.y=pos.y;
+						this.laser_mesh.position.z=pos.z;
+					}
+		 		};
+		 		this.CheckLaserCollision = function(targets){
+			 		var raycast = new THREE.Raycaster();
+			 		for (var i = 0; i < targets.length; i++) {
+						raycast.set(this.laser_mesh.position,this.rays[0]);
+						var collisions = raycast.intersectObjects([targets[i]],true);
+						if(collisions.length>0 && collisions[0].distance<=1)
+						{
+							console.log("asteroid HIT");
+							scene.remove(targets[i]);
+							targets.splice(i,1);
 						}
-			 		};
-			 		this.CheckLaserCollision = function(targets){
-				 		var raycast = new THREE.Raycaster();
-				 		for (var i = 0; i < targets.length; i++) {
-							raycast.set(this.laser_mesh.position,this.rays[0]);
-							var collisions = raycast.intersectObjects(targets[i],true);
-							if(collisions.length>0 && collisions[0].distance<=1)
-							{
+					}
+		 		};
 
-								scene.remove(targets[i]);
-							}
-						}
-			 		};
-
-			 	}
+		 	}
 //======END=LASER=======================================================
 
 		</script>
