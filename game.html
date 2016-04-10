@@ -26,6 +26,7 @@
 		<script>
 //==========VARIABLES================================================
 			var camera1, camera2, scene, renderer;
+			scene = new THREE.Scene();
 			var asteroid;
 			var asteroids = new Array();
 
@@ -144,6 +145,7 @@
 					}
 				}
 			};
+			level();
 			init();
 			render();
 
@@ -168,7 +170,6 @@
 				controls.dampingFactor = 0.25;
 				controls.enableZoom = true;
 
-				scene = new THREE.Scene();
 
 				//Player-test-------------------------------------------------------
 				Player.create();
@@ -195,25 +196,6 @@
 				asteroid.radius=5;
 				scene.add(asteroid.createAsteroid());
 				Player.targets.push(asteroid.asteroid_mesh);
-				// for (var i = 0; i <20; i++) {	
-				// 	asteroids.push(new Asteroid());
-				// 	asteroids[i].position.z=-8*i;
-				// 	console.log(asteroids[i].position.z)
-				// 	var randomPoints = [];
-				// 	for ( var j = 0; j < 100; j ++ ) {
-				// 	    randomPoints.push(
-				// 	        new THREE.Vector3(Math.random() * 200 - 100, Math.random() * 200 - 100, Math.random() * 200 - 100)
-				// 	    );
-				// 	}
-				// 	asteroids[i].direction(randomPoints);
-				// 	asteroids[i].radius=3;
-				// 	asteroids[i].move_active=true;
-				// 	asteroids[i].roll.active=true;
-				// 	asteroids[i].roll.x=1;
-				// 	asteroids[i].roll.y=1;
-				// 	//if(asteroids[i] != undefined)
-				// 	scene.add(asteroids[i].createAsteroid());
-				// }
 			 	
 				//LIGHT------------------------------------------
 			 	var ambientLight = new THREE.AmbientLight( 0x444444 );
@@ -230,7 +212,47 @@
 				document.body.appendChild( stats.domElement );
 
 			}//init-end
+//============================================= LEVEL ==================================================
+				function level(){
+					var astr = 7;
+					var min = -50;
+					var max = 50;
+					var astrMulDist=1;
+					for (var i = 0; i < astr; i++) {
+						var asteroid = new Asteroid();
+						asteroid.position.x=(randomInRange(min,max)*astrMulDist);
+						asteroid.position.y=(randomInRange(min,max)*astrMulDist);
+						asteroid.position.z=(randomInRange(min,max)*astrMulDist);
+						asteroid.direction([new THREE.Vector3(
+															randomInRange(min,max)*2,
+															randomInRange(min,max)*2, 
+															randomInRange(min,max)*2 ),
+											new THREE.Vector3(
+															randomInRange(min,max)*2,
+															randomInRange(min,max)*2,
+															randomInRange(min,max)*2 ),
+											new THREE.Vector3(
+															randomInRange(min,max)*2,
+															randomInRange(min,max)*2,
+															randomInRange(min,max)*2 )]);
 
+						asteroid.move_active=true;
+						asteroid.roll.active=true;
+						asteroid.radius=randomInRange(3,20);
+						asteroid.n_steps=randomInRange(200,400);
+						asteroid.roll.x=1;
+						asteroid.roll.y=1;
+						asteroids.push(asteroid);
+						asteroid.createAsteroid();
+						Player.targets.push(asteroid.asteroid_mesh);
+						scene.add(asteroid.asteroid_mesh);
+
+					};
+				};
+//======================================================================================================
+				function randomInRange(min, max){
+					return Math.random()*(max-min)+min;
+				}
 			//GUI-------------------------------------				
 			window.onload = function() {
 				var gui = new dat.GUI();
@@ -328,6 +350,13 @@
 				if(asteroid != undefined){
 					asteroid.update();
 				}
+
+				if (asteroids.length>0) {
+					for (var i = 0; i < asteroids.length; i++) {
+						asteroids[i].update();
+					}
+				};
+
 				Player.update();
 				var relativeCameraOffset = new THREE.Vector3 (0,5,-10);
 				var cameraOffset = relativeCameraOffset.applyMatrix4( Player.mesh.matrixWorld );
@@ -370,7 +399,7 @@
 														color : 0x757778,
 														emissive : 0x222222
 														});
-				this.spline = new THREE.CatmullRomCurve3();
+				this.spline = new THREE.CatmullRomCurve3([new THREE.Vector3( 0, 0, 0 ),new THREE.Vector3( 0, 0, 0 )]);
 				this.asteroid_mesh = new THREE.Mesh();
 				this.direction = function(point){
 					this.spline = new THREE.CatmullRomCurve3(point);
