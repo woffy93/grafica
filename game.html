@@ -1,3 +1,10 @@
+<!----------------------------> 
+<!--		Programmed		-->
+<!--			by			-->
+<!--	Francesco Wofford	-->
+<!--			&			-->
+<!--	Roberto Del Col		-->
+<!---------------------------->
 <html>
 	<head>
 		<title>Game</title>
@@ -27,7 +34,6 @@
 //==========VARIABLES================================================
 			var camera1, camera2, scene, renderer;
 			scene = new THREE.Scene();
-			var asteroid;
 			var asteroids = new Array();
 
 			var moveState = { up: 0, down: 0, left: 0, right: 0, forward: 0, back: 0, pitchUp: 0, pitchDown: 0, yawLeft: 0, yawRight: 0, rollLeft: 0, rollRight: 0 };
@@ -35,7 +41,9 @@
 			var currentCamera = {
 				cam : "cam1"
 			}
-
+			var stat={
+				start_game : false
+			}
 			var Player ={
 				mesh : new THREE.Mesh(),
 				targets : new Array(),
@@ -44,6 +52,7 @@
 				roll : new THREE.Vector3(0,0,0),
 				is_alive : true,
 				objLoad : false,
+				points: 0,
 				rays : [
 				    new THREE.Vector3(0, 0, 1),
 				    new THREE.Vector3(1, 0, 1),
@@ -171,32 +180,9 @@
 				controls.enableZoom = true;
 
 
-				//Player-test-------------------------------------------------------
+				//Player------------------------------------------------------------
 				Player.create();
 
-				//Asteroid-Test-----------------------------------------------------
-				asteroid = new Asteroid();
-				asteroid.position.x=-20;
-				asteroid.move_active=false;
-				asteroid.roll.active=false;
-				asteroid.roll.x=1;
-				asteroid.roll.y=1;
-				// var point=[
-				// 	new THREE.Vector3(-20,0,0),
-				// 	new THREE.Vector3(20,0,0)
-				//  ];
-				var point=[
-					new THREE.Vector3(-20,5,0),
-					new THREE.Vector3(-10,-5,0),
-					new THREE.Vector3(0,5,0),
-					new THREE.Vector3(10,-5,0),
-					new THREE.Vector3(20,5,0)
-				];
-				asteroid.direction(point);
-				asteroid.radius=5;
-				scene.add(asteroid.createAsteroid());
-				Player.targets.push(asteroid.asteroid_mesh);
-			 	
 				//LIGHT------------------------------------------
 			 	var ambientLight = new THREE.AmbientLight( 0x444444 );
 				scene.add( ambientLight );
@@ -211,12 +197,12 @@
 				stats.domElement.style.top = '0px';
 				document.body.appendChild( stats.domElement );
 
-			}//init-end
-//============================================= LEVEL ==================================================
+			}
+//=============================================LEVEL==================================================
 				function level(){
-					var astr = 7;
-					var min = -50;
-					var max = 50;
+					var astr = 20;
+					var min = -80;
+					var max = 80;
 					var astrMulDist=1;
 					for (var i = 0; i < astr; i++) {
 						var asteroid = new Asteroid();
@@ -224,22 +210,22 @@
 						asteroid.position.y=(randomInRange(min,max)*astrMulDist);
 						asteroid.position.z=(randomInRange(min,max)*astrMulDist);
 						asteroid.direction([new THREE.Vector3(
-															randomInRange(min,max)*2,
-															randomInRange(min,max)*2, 
-															randomInRange(min,max)*2 ),
-											new THREE.Vector3(
-															randomInRange(min,max)*2,
-															randomInRange(min,max)*2,
-															randomInRange(min,max)*2 ),
-											new THREE.Vector3(
-															randomInRange(min,max)*2,
-															randomInRange(min,max)*2,
-															randomInRange(min,max)*2 )]);
+														randomInRange(min,max)*2,
+														randomInRange(min,max)*2, 
+														randomInRange(min,max)*2 ),
+										new THREE.Vector3(
+														randomInRange(min,max)*2,
+														randomInRange(min,max)*2,
+														randomInRange(min,max)*2 ),
+										new THREE.Vector3(
+														randomInRange(min,max)*2,
+														randomInRange(min,max)*2,
+														randomInRange(min,max)*2 )]);
 
 						asteroid.move_active=true;
 						asteroid.roll.active=true;
 						asteroid.radius=randomInRange(3,20);
-						asteroid.n_steps=randomInRange(200,400);
+						asteroid.n_steps=randomInRange(500,600);
 						asteroid.roll.x=1;
 						asteroid.roll.y=1;
 						asteroids.push(asteroid);
@@ -249,16 +235,18 @@
 
 					};
 				};
-//======================================================================================================
-				function randomInRange(min, max){
-					return Math.random()*(max-min)+min;
-				}
+//==============================================================================================
+			function randomInRange(min, max){
+				return Math.random()*(max-min)+min;
+			}
 			//GUI-------------------------------------				
 			window.onload = function() {
 				var gui = new dat.GUI();
 				gui.add(currentCamera, 'cam', { inspect: "cam1", player: "cam2"} );
-				//gui.add(asteroid, 'move_active');
-				//gui.add(asteroid.roll, 'active');
+				gui.add(stat, 'start_game');
+				//gui.add(Player, 'points');
+
+
   			}
   			function cameraSelector() {
 				if (currentCamera.cam=="cam1"){
@@ -270,11 +258,6 @@
 
   			window.addEventListener('keydown', function(event) {
   				if(currentCamera.cam=="cam2"){
-  					// if(event.keyCode == 65) Player.move.x+=0.1;
-  					// if(event.keyCode == 87) Player.move.z+=0.1;
-  					// if(event.keyCode == 68) Player.move.x-=0.1;
-  					// if(event.keyCode == 83) Player.move.z-=0.1;
-  					// if(event.keyCode == 69) Player.fire();
 					switch (event.keyCode) {
 						case 65: // Left
 							Player.move.x+=0.1;
@@ -346,18 +329,7 @@
 				requestAnimationFrame(render);
 				
 				stats.update();
-				
-				if(asteroid != undefined){
-					asteroid.update();
-				}
 
-				if (asteroids.length>0) {
-					for (var i = 0; i < asteroids.length; i++) {
-						asteroids[i].update();
-					}
-				};
-
-				Player.update();
 				var relativeCameraOffset = new THREE.Vector3 (0,5,-10);
 				var cameraOffset = relativeCameraOffset.applyMatrix4( Player.mesh.matrixWorld );
 				camera2.position.x = cameraOffset.x;
@@ -366,8 +338,29 @@
 				camera2.rotation.y = 90 * Math.PI / 180;
 				camera2.rotation.z = Math.PI;
 				camera2.lookAt(Player.mesh.position);
-				
+
+				if(stat.start_game)
+				{
+					if (asteroids.length>0) {
+						for (var i = 0; i < asteroids.length; i++) {
+							asteroids[i].update();
+						}
+					};
+
+					Player.update();
+
+					var up=new THREE.Vector3(0,0,1);
+
+					up.applyEuler(new THREE.Euler(
+							Player.roll.x*(Math.PI/2)-(Math.PI/2),
+							Player.roll.y*(Math.PI),
+							Player.roll.z,
+							'ZYX' ));
+					camera2.up=up;
+				}
+
 				renderer.render(scene, cameraSelector());
+			
 			}
 
 //===========OBJECT======================================================
@@ -393,7 +386,7 @@
 				};			
 				this.move_active = true;
 				this.visible = true;
-				this.n_steps = 400;
+				this.n_steps = 500;
 				this.step = 0;
 				this.material = new THREE.MeshLambertMaterial({
 														color : 0x757778,
@@ -459,9 +452,9 @@
 		 		this.laser_mesh = new THREE.Mesh(this.geometry, this.material);
 		 		this.spline = new THREE.CatmullRomCurve3();
 		 		this.rays = [new THREE.Vector3(0,0,1)];
-		 		this.n_steps = 400;
+		 		this.n_steps = 600;
 		 		this.step = 0;
-		 		this.far = 100;
+		 		this.far = 400;
 		 		this.createLaser = function(player){
 		 			var relativeLaserOffset = new THREE.Vector3 (0.35,-0.95, 1);
 					var laserOffset = relativeLaserOffset.applyMatrix4( player.matrixWorld );
@@ -478,9 +471,8 @@
 						Player.roll.x*(Math.PI/2),
 						Player.roll.y*(Math.PI),
 						Player.roll.z,
-						'ZYX' )).normalize();
+						'ZYX' )).normalize().multiply(new THREE.Vector3(0.5,0.5,0.5));
 
-					//set fire tragectory
 					var end_point=new THREE.Vector3(0,0,1);
 					end_point.applyEuler(new THREE.Euler(
 						Player.roll.x*(Math.PI/2),
@@ -521,13 +513,13 @@
 			 		for (var i = 0; i < targets.length; i++) {
 						raycast.set(this.laser_mesh.position,this.rays[0]);
 						var collisions = raycast.intersectObjects([targets[i]],true);
-						if(collisions.length>0 && collisions[0].distance<=1)
+						if(collisions.length>0 && collisions[0].distance<=5)
 						{
 							console.log("asteroid HIT");
 							scene.remove(targets[i]);
 							asteroids.splice(i,1);
 							targets.splice(i,1);
-							//delete asteroids[i];
+							Player.points+=1;
 							return true;
 						}
 					}
