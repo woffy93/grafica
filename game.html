@@ -1,10 +1,25 @@
 <!----------------------------> 
-<!--		Programmed		-->
+<!--		Created			-->
 <!--			by			-->
 <!--	Francesco Wofford	-->
 <!--			&			-->
 <!--	Roberto Del Col		-->
 <!---------------------------->
+
+<!--		
+				----RULES----
+	Destroy all the asteroids without being hit
+		Commands:
+				W mouve up
+				A mouve left
+				S mouve down
+				D mouve right
+				E shoot
+				mouse
+-->
+
+
+
 <html>
 	<head>
 		<title>Game</title>
@@ -26,7 +41,7 @@
 		<script src="lib/OBJLoader.js"></script>
 		<script src="lib/MTLLoader.js"></script>
 		<script src="lib/OrbitControls.js"></script>
-		<script src="http://dat-gui.googlecode.com/git/build/dat.gui.min.js"></script>
+		<script src="lib/dat.gui.min.js"></script>
 	</head>
 	<body>
 		
@@ -178,6 +193,26 @@
 				controls.enableDamping = true;
 				controls.dampingFactor = 0.25;
 				controls.enableZoom = true;
+				//override to library bug in our version, see https://github.com/mrdoob/three.js/issues/4327. Current one refuses to load due to an unreported(?) bug
+				window.addEventListener('keydown', function(event) {
+	  				if(currentCamera.cam=="cam1"){
+						switch (event.keyCode) {
+							case 37: // Left
+								camera1.position.x+=0.1;
+							break;
+							case 38: // Up
+								camera1.position.z+=0.1;
+							break;
+							case 39: // Right
+								camera1.position.x-=0.1;
+							break;
+							case 40: // Down
+								camera1.position.z-=0.1;
+							break;
+
+						}
+					}
+	  			})
 
 
 				//Player------------------------------------------------------------
