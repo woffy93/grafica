@@ -44,6 +44,32 @@
 		<script src="lib/dat.gui.min.js"></script>
 	</head>
 	<body>
+				<script type="text/x-glsl" id="vertex">
+
+			varying vec2 uVc;
+
+			void main()
+			{
+				vec4 worldSpPos = modelMatrix * vec4(position,1.0);
+				vec4 cameraSpPos = viewMatrix * worldSpPos;
+				vec4 clipSpPos = projectionMatrix * cameraSpPos;
+				uVc =  uv;
+				gl_Position = clipSpPos;
+			}
+
+		</script>
+		<script type="text/x-glsl" id="fragment">
+			
+			uniform sampler2D txtrAsteroid;
+			
+			varying vec2 uVc;
+
+			void main()
+			{
+				gl_FragColor = texture2D(txtrAsteroid , uVc);
+			}
+
+		</script>
 		
 		<script>
 //==========VARIABLES================================================
@@ -423,10 +449,23 @@
 				this.visible = true;
 				this.n_steps = 500;
 				this.step = 0;
-				this.material = new THREE.MeshLambertMaterial({
+
+				var asteroidTexture = THREE.ImageUtils.loadTexture("models/asteroid-txtr.png");
+
+				this.material = new THREE.ShaderMaterial({
+					uniforms: {
+						color: {type: 'f', value: 0.0},
+						txtrAsteroid: {type: 't', value: asteroidTexture}
+						},
+						vertexShader: document.getElementById('vertex').text,
+						fragmentShader: document.getElementById('fragment').text,
+						transparent: true
+					});
+
+				/*this.material = new THREE.MeshLambertMaterial({
 														color : 0x757778,
 														emissive : 0x222222
-														});
+														});*/
 				this.spline = new THREE.CatmullRomCurve3([new THREE.Vector3( 0, 0, 0 ),new THREE.Vector3( 0, 0, 0 )]);
 				this.asteroid_mesh = new THREE.Mesh();
 				this.direction = function(point){
