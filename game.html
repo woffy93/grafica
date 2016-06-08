@@ -44,7 +44,7 @@
 		<script src="lib/dat.gui.min.js"></script>
 	</head>
 	<body>
-				<script type="text/x-glsl" id="vertex">
+		<script type="text/x-glsl" id="vertex">
 
 			varying vec2 uVc;
 
@@ -251,6 +251,36 @@
 				var directLight = new THREE.DirectionalLight( 0xffffff ,0.5);
 				directLight.position.set(0,0,5);
 				scene.add( directLight );
+
+				//test-------------------------
+
+
+				var path = "models/skybox_hifi/";
+			    var format = '.jpg';
+				var urls = [
+					path + 'pink_planet_pos_x' + format, path + 'pink_planet_neg_x' + format,
+					path + 'pink_planet_pos_y' + format, path + 'pink_planet_neg_y' + format,
+					path + 'pink_planet_pos_z' + format, path + 'pink_planet_neg_z' + format
+				];
+				var reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
+
+				var shader = THREE.ShaderLib[ "cube" ];
+				shader.uniforms[ "tCube" ].value = reflectionCube;
+			
+				var materialSkyBox = new THREE.ShaderMaterial( {
+
+					fragmentShader: shader.fragmentShader,
+					vertexShader: shader.vertexShader,
+					uniforms: shader.uniforms,
+					depthWrite: false,
+					side: THREE.BackSide
+
+				} );
+
+
+				
+				var cube_map = new THREE.Mesh(new THREE.CubeGeometry(1000,1000,1000), materialSkyBox);
+				scene.add(cube_map);
 
 				//STATS-------------------------------------------
 				stats = new Stats();
