@@ -68,7 +68,33 @@
 			{
 				gl_FragColor = texture2D(txtrAsteroid , uVc);
 			}
+		</script>
 
+		<script type="text/x-glsl" id="sky-vertex">
+
+			varying vec2 uVc;
+
+			void main()
+			{
+				vec4 worldSpPos = modelMatrix * vec4(position,1.0);
+				vec4 cameraSpPos = viewMatrix * worldSpPos;
+				vec4 clipSpPos = projectionMatrix * cameraSpPos;
+				uVc =  uv;
+				gl_Position = clipSpPos;
+			}
+
+		</script>
+		<script type="text/x-glsl" id="sky-fragment">
+			
+			uniform sampler2D txtrSky;
+			
+			varying vec2 uVc;
+
+			void main()
+			{
+				vec4 txtr = texture2D(txtrSky , uVc);
+				gl_FragColor = vec4(txtr.xyz,txtr.w);
+			}
 		</script>
 		
 		<script>
@@ -208,10 +234,10 @@
 				document.body.appendChild(renderer.domElement);
 
 				//CAMERAS----------------------------------------------------------------------------------------
-				camera1 = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+				camera1 = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 5000 );
 				camera1.position.x = 2*(Math.PI)
 				camera1.position.z = 10;
-				camera2 = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+				camera2 = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 5000 );
 				camera2.position.set(0,0,0);	
 				
 				//Controls----------------------------------------------------------		
@@ -252,35 +278,30 @@
 				directLight.position.set(0,0,5);
 				scene.add( directLight );
 
-				//test-------------------------
+				//skybox-------------------------
+
+				var path = "models/Milkyway/Milkyway_BG.jpg";
+			    
+				var skyGeometry = new THREE.SphereGeometry(3000,32,32);
+				var skyTexture = new THREE.ImageUtils.loadTexture(path);
+				var skyUniforms = {
+					txtrSky:{type:'t',value:skyTexture}
+				};
+				var skyVertex = document.getElementById('sky-vertex').textContent;
+				var skyFragment = document.getElementById('sky-fragment').textContent;
 
 
-				var path = "models/skybox_hifi/";
-			    var format = '.jpg';
-				var urls = [
-					path + 'pink_planet_pos_x' + format, path + 'pink_planet_neg_x' + format,
-					path + 'pink_planet_pos_y' + format, path + 'pink_planet_neg_y' + format,
-					path + 'pink_planet_pos_z' + format, path + 'pink_planet_neg_z' + format
-				];
-				var reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
-
-				var shader = THREE.ShaderLib[ "cube" ];
-				shader.uniforms[ "tCube" ].value = reflectionCube;
-			
-				var materialSkyBox = new THREE.ShaderMaterial( {
-
-					fragmentShader: shader.fragmentShader,
-					vertexShader: shader.vertexShader,
-					uniforms: shader.uniforms,
-					depthWrite: false,
-					side: THREE.BackSide
-
-				} );
-
-
-				
-				var cube_map = new THREE.Mesh(new THREE.CubeGeometry(1000,1000,1000), materialSkyBox);
-				scene.add(cube_map);
+				var skyMaterial=new THREE.ShaderMaterial(
+						{
+							uniforms : skyUniforms,
+							vertexShader : skyVertex,
+							fragmentShader : skyFragment
+						});
+				var skyMesh = new THREE.Mesh(skyGeometry,skyMaterial);
+				skyMesh.scale.set(-1,1,1);
+				skyMesh.rotation.order = 'XZY';
+				skyMesh.renderOrder = 1000.0;
+				scene.add(skyMesh);
 
 				//STATS-------------------------------------------
 				stats = new Stats();
@@ -492,7 +513,7 @@
 						transparent: true
 					});
 
-				/*this.material = new THREE.MeshLambertMaterial({
+				/*ligh.material = new THREE.MeshLambertMaterial({
 														color : 0x757778,
 														emissive : 0x222222
 														});*/
