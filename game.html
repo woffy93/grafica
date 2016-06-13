@@ -45,28 +45,113 @@
 	</head>
 	<body>
 		<script type="text/x-glsl" id="vertex">
+			//LUCE-sun
+			uniform vec3 sunPosition
+			varying vec3 sunVector;
 
-			varying vec2 uVc;
+			//LUCE-spot
+			uniform vec3 spotPosition;
+			varying vec3 spotVector;
+
+			//MATERIALE
+			varying vec2 uVc; //coordinate texture
+			varying vec3 normalCs;//normali in camera space
+			varying vec3 pointPosCs;// posizione in camera space
 
 			void main()
 			{
-				vec4 worldSpPos = modelMatrix * vec4(position,1.0);
-				vec4 cameraSpPos = viewMatrix * worldSpPos;
-				vec4 clipSpPos = projectionMatrix * cameraSpPos;
-				uVc =  uv;
-				gl_Position = clipSpPos;
+				 
+				vec4 posCs = modelViewMatrix * vec4(position,1.0);;
+
+				normalCs = normalMatrix * normal;
+
+				pointPosCs = posCs.xyz;
+
+				vec4 sunPosCs = viewMatrix * vec4( sunPosition, 1.0 );
+				sunVector = sunPosCs.xyz - posCs.xyz;
+
+				vec4 spotPosCs = viewMatrix * vec4( spotPosition, 1.0 );
+				spotVector = spotPosCs.xyz - posCs.xyz;
+
+				uVc = uv;
+
+				gl_Position = projectionMatrix * cameraSpPos;
 			}
 
+			
 		</script>
+		
 		<script type="text/x-glsl" id="fragment">
-			
-			uniform sampler2D txtrAsteroid;
-			
-			varying vec2 uVc;
+			//LUCE-sun	
+			uniform vec3 sunPower;//intensita
+			varying vec3 sunVector;
+			//LUCE-spot
+			uniform vec3 spotPower;//intensita
+			uniform float angleOfLight;//angolo cono di luce
+			varying vec3 spotVector;
+			//luce ambientale
+			uniform float ambiental;
+
+			//MATERIALE
+			uniform sampler2D txtrAsteroid_diff;//diffuse map
+			uniform sampler2D txtrAsteroid_norm;//normal map
+			uniform vec3 specColor; //specular color
+			uniform float alpha; //ruvidita
+			uniform float ratio; // diff/spec
+
+			varying vec2 uVc; //coordinate texture
+			varying vec3 normalCs;//normali in camera space
+			varying vec3 pointPosCs;// posizione in camera space
+
+			#define PI 3.14159265
+
+			float dt(vec3 a, vec3 b)//prodotto scalare non negativo
+			{
+				return max(0.000001, dot( a, b ));
+			}
+
+
+			float G(vec3 l,vec3 h)//geometry term
+			{
+				return 1.0/pow(dt( l, h ),2.0);
+			}
+
+			vec3 F(vec3 l,vec3 h)//Fresnel (approsimazione Schlick)
+			{
+				return specColor.rgb + (1.0 - specColor.rgb)*pow(1.0-dt( l, h ), 5.0);
+			}
+
+			float D(vec3 n, vec3 h)	//GGX o GXX ?
+			{
+				float A = pow(alpha,2.0);
+				float B = PI * pow(pow(dt(n ,h ),2.0)*(A-1.0) + 1.0, 2.0);
+				return A/B;
+			}
 
 			void main()
 			{
-				gl_FragColor = texture2D(txtrAsteroid , uVc);
+				vec3  n = normalize( normalCs );
+				vec3  v = normalize( -pointPosCs );  
+
+				vec3  lsun = normalize(  sunVector );  
+				vec3  hsun = normalize( v+lsun );
+
+				vec3  lspot = normalize(  spotVector );  
+				vec3  hspot = normalize( v+lspot );
+
+				vec3 sunSpecBRDF = (F(lsun,n)*G(v,hsun)*D(n,hsun))/4.0;
+				vec3 sunBeta = sunPower / ( 4.0  * PI * pow(length(sunVector),2.0) );
+
+				vec3 spotSpecBRDF = (F(lspot,n)*G(v,hspot)*D(n,hspot))/4.0;
+				//if su l'angolo, falso spotPower=0
+				vec3 spotBeta = spotPower / ( 4.0  * PI * pow(length(spotVector),2.0) );
+
+				vec3 diffColor = texture2D(txtrAsteroid , uVc).rgb;
+
+				gl_FragColor = vec4(ambiental+
+									sunBeta*dt(l,n)*( ratio*diffColor + (1.0-ratio)*sunSpecBRDF)+
+									spotBeta*dt(l,n)*( ratio*diffColor + (1.0-ratio)*spotSpecBRDF)+
+									, 1.0);
 			}
 		</script>
 
@@ -76,12 +161,9 @@
 
 			void main()
 			{
-				vec4 worldSpPos = modelMatrix * vec4(position,1.0);
-				vec4 cameraSpPos = viewMatrix * worldSpPos;
-				vec4 clipSpPos = projectionMatrix * cameraSpPos;
+				vec4 posCs = modelViewMatrix * vec4(position,1.0);
 				uVc =  uv;
-				gl_Position = clipSpPos;
-			}
+				gl_Position = projectionMatrix * cameraSpPos;
 
 		</script>
 		<script type="text/x-glsl" id="sky-fragment">
@@ -505,9 +587,15 @@
 
 				this.material = new THREE.ShaderMaterial({
 					uniforms: {
-						color: {type: 'f', value: 0.0},
-						txtrAsteroid: {type: 't', value: asteroidTexture}
-						},
+								sunVector:	{type: 'v3', value: new THREE.Vector3(0.0,0.0,1.0) },
+								sunPower: {type: 'v3', value: new THREE.Vector3(60000000.0, 60000000.0, 60000000.0 ) },
+								sunDistance: {type: 'f', value: 30.0 },
+								specColor: {type: 'v3', value: new THREE.Vector3(0.75, 0.77, 0.78) },
+								alpha: {type: 'f', value: 0.0 },
+								ratio: {type: 'f', value: 0.9 },
+								amb: {type: 'f', value: 0.1},
+								txtrAsteroid: {type: 't', value: asteroidTexture}
+							},
 						vertexShader: document.getElementById('vertex').text,
 						fragmentShader: document.getElementById('fragment').text,
 						transparent: true
