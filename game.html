@@ -98,12 +98,32 @@
 			uniform vec3 specColor; //specular color
 			uniform float alpha; //ruvidita
 			uniform float ratio; // diff/spec
+			uniform vec2 normalScale;
 
 			varying vec2 uVc; //coordinate texture
 			varying vec3 normalCs;//normali in camera space
 			varying vec3 pointPosCs;// posizione in camera space
 
 			#define PI 3.14159265
+
+			#extension GL_OES_standard_derivatives : enable
+
+			vec3 perturbNormal2Arb( vec3 eye_pos, vec3 surf_norm ) 
+			{
+				vec3 q0 = dFdx( eye_pos.xyz );
+				vec3 q1 = dFdy( eye_pos.xyz );
+				vec2 st0 = dFdx( uVc.st );
+				vec2 st1 = dFdy( uVc.st );
+
+				vec3 S = normalize(  q0 * st1.t - q1 * st0.t );
+				vec3 T = normalize( -q0 * st1.s + q1 * st0.s );
+				vec3 N =  surf_norm ;
+
+				vec3 mapN = texture2D( txtrAsteroidNorm, uVc ).xyz * 2.0 - 1.0;
+				mapN.xy = normalScale * mapN.xy;
+				mat3 tsn = mat3( S, T, N );
+				return normalize( tsn * mapN );
+			}
 
 			float dt(vec3 a, vec3 b)//prodotto scalare non negativo
 			{
@@ -121,7 +141,7 @@
 				return specColor.rgb + (1.0 - specColor.rgb)*pow(1.0-dt( l, h ), 5.0);
 			}
 
-			float D(vec3 n, vec3 h)	//GGX o GXX ?
+			float D(vec3 n, vec3 h)	//GGX 
 			{
 				float A = pow(alpha,2.0);
 				float B = PI * pow(pow(dt(n ,h ),2.0)*(A-1.0) + 1.0, 2.0);
@@ -130,7 +150,7 @@
 
 			void main()
 			{
-				vec3  n = normalize( normalCs );
+				vec3  n = perturbNormal2Arb(pointPosCs,normalize(normalCs)) ;
 				vec3  v = normalize( -pointPosCs );  
 
 				vec3  lsun = normalize(  sunVector );  
@@ -596,6 +616,7 @@
 					alpha: {type: 'f', value: 0.0 },
 					ratio: {type: 'f', value: 0.9 },
 					ambiental: {type: 'f', value: 0.1},
+					normalScale: {type: 'v2', value: new THREE.Vector2(0.8, 0.8) },
 					txtrAsteroidDiff: {type: 't', value: asteroidTextureDiff},
 					txtrAsteroidNorm: {type: 't', value: asteroidTextureNorm}
 							},
