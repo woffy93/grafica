@@ -137,6 +137,7 @@
 			uniform float alpha; //ruvidita
 			uniform float ratio; // diff/spec
 			uniform vec2 normalScale;
+			uniform vec3 albedo;
 
 			varying vec2 uVc; //coordinate texture
 			varying vec3 normalCs;//normali in camera space
@@ -198,6 +199,8 @@
 				vec3  lspot = normalize( spotVector );  
 				vec3  hspot = normalize( v+lspot );
 
+				vec3 lambert = albedo / PI;
+
 				vec3 sunSpecBRDF = (F(lsun,n)*G(v,hsun)*D(n,hsun))/4.0;
 				vec3 sunBeta = sunPower / ( 4.0  * PI * pow(length(sunVector),2.0) );
 
@@ -215,8 +218,8 @@
 				vec3 diffColor = texture2D(txtrAsteroidDiff , uVc).rgb;
 
 				gl_FragColor = vec4(ambiental+
-									sunBeta*dt(lsun,n)*( ratio*diffColor + (1.0-ratio)*sunSpecBRDF)+
-									spotBeta*dt(lspot,n)*( ratio*diffColor + (1.0-ratio)*spotSpecBRDF), 1.0);
+									sunBeta*dt(lsun,n)*( ratio*diffColor + (1.0-ratio)*(sunSpecBRDF+lambert))+
+									spotBeta*dt(lspot,n)*( ratio*diffColor + (1.0-ratio)*(spotSpecBRDF+lambert)), 1.0);
 			}
 		</script>
 
@@ -289,7 +292,7 @@
 				    new THREE.Vector3(0, -1, 0)	//down
 				],
 				fps : 0,
-				spotLightPower: new THREE.Vector3(100100.0, 100000.0, 100000.0),
+				spotLightPower: new THREE.Vector3(50100.0, 50000.0, 50000.0),
 				spotLightAngle: Math.PI/6,
 				LoadObj : function (path){
 					var mtlLoader = new THREE.MTLLoader();
@@ -447,7 +450,6 @@
 				var skyVertex = document.getElementById('sky-vertex').textContent;
 				var skyFragment = document.getElementById('sky-fragment').textContent;
 
-
 				var skyMaterial=new THREE.ShaderMaterial(
 						{
 							uniforms : skyUniforms,
@@ -478,16 +480,16 @@
 
 				composer.addPass( new THREE.RenderPass( scene, cameraSelector() ));
 
-				if(post_proc_eff.greyScale)
-				{
-					greyScaleEffect = new THREE.ShaderPass( GreyScaleShader );
-					composer.addPass( greyScaleEffect );
-				}
-
 				if(post_proc_eff.crt)
 				{
 					crtEffect = new THREE.ShaderPass( crtShader );
 					composer.addPass( crtEffect );
+				}
+
+				if(post_proc_eff.greyScale)
+				{
+					greyScaleEffect = new THREE.ShaderPass( GreyScaleShader );
+					composer.addPass( greyScaleEffect );
 				}
 
 				var effect = new THREE.ShaderPass( THREE.CopyShader);
@@ -715,9 +717,10 @@
 					spotAngle: {type: 'f', value: Player.spotLightAngle },
 					spotDirection: {type: 'v3', value: new THREE.Vector3(0.0, 0.0, 1.0)},
 					specColor: {type: 'v3', value: new THREE.Vector3(0.75, 0.77, 0.78) },
-					alpha: {type: 'f', value: 0.0 },
+					alpha: {type: 'f', value: 2.0 },
 					ratio: {type: 'f', value: 0.9 },
 					ambiental: {type: 'f', value: 0.1},
+					albedo: {type: 'v3',value: new THREE.Vector3(0.1, 0.1, 0.1)},
 					normalScale: {type: 'v2', value: new THREE.Vector2(0.8, 0.8) },
 					txtrAsteroidDiff: {type: 't', value: asteroidTextureDiff},
 					txtrAsteroidNorm: {type: 't', value: asteroidTextureNorm}
@@ -820,7 +823,7 @@
 					this.spline = new THREE.CatmullRomCurve3([
 							this.laser_mesh.position,
 							end_point
-															]);
+					]);
 					scene.add(this.laser_mesh);
 		 		};
 		 		this.update = function(){
